@@ -21,15 +21,19 @@ public:
         : mSize(size)
         , mArr(new T[mSize]) { debug("ctor"); }
 
-    explicit TArray(std::initializer_list<T> lst)
+    TArray(std::initializer_list<T> lst)
         : mSize(lst.size())
         , mArr(new T[mSize]) {
         debug("ctor(init list)");
-        for (auto this_iter = begin(), lst_iter = lst.begin();
-             lst_iter != lst.end(); this_iter++, lst_iter++)
-            *this_iter = *lst_iter;
+        std::copy(lst.begin(), lst.end(), begin());
     }
 
+    TArray(const TArray& t)
+        : mSize(t.mSize)
+        , mArr(new T[mSize]) {
+        std::copy(t.begin(), t.end(), begin());
+        debug("ctor(copy)");
+    }
     template <typename U>
     TArray(const TArray<U>& t)
         : mSize(t.mSize)
@@ -45,18 +49,31 @@ public:
         t.mSize = 0;
         t.mArr = nullptr;
     }
-
     template <typename U>
     TArray(TArray<U>&& t)
         : mSize(t.mSize)
         , mArr(new T[mSize]) {
         debug_move("ctor(move T U)", std::move(t));
         std::copy(t.begin(), t.end(), begin());
+        t.mSize = 0;
+        delete [] t.mArr;
+        t.mArr = nullptr;
     }
 
     ~TArray() {
         if (mArr != nullptr)
             delete [] mArr;
+    }
+
+    friend void swap(TArray& l, TArray& r) {
+        std::swap(l.mSize, r.mSize);
+        std::swap(l.mArr, r.mArr);
+    }
+    TArray& operator=(TArray& p) {
+        debug("copy and swap");
+        TArray tmp(p);
+        swap(*this, tmp);
+        return *this;
     }
 
     template <typename ...Args>
@@ -132,7 +149,8 @@ public:
         const Iterator operator-(const Iterator& rhs) const { 
            return { mSize, mData, this->mPos - rhs.mPos };
         }
-        template <typename U> operator U() const { return mPos; }
+        //template <typename U> operator U() const { return mPos; }
+        operator size_t() const { return mPos; }
     };
 
 private:

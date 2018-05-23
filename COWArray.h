@@ -19,7 +19,8 @@ class COWArray {
         T* tmp = mArr.get();
         if (tmp != nullptr && !mArr.unique()) {
             mArr = refptr(new T[mSize]);
-            std::memcpy(mArr.get(), tmp, sizeof(T) * mSize);
+            for (int i = 0; i < mSize; i++)
+                mArr[i] = tmp[i];
         }
     }
 public:
@@ -27,12 +28,13 @@ public:
     friend class COWArray;
     using refptr = std::shared_ptr<T[]>;
     int own() { return mArr.use_count(); }
+    auto getaddr() { return mArr.get(); }
 
     explicit COWArray(size_t size)
         : mSize(size)
         , mArr(new T[mSize]) { debug("ctor"); }
 
-    explicit COWArray(std::initializer_list<T> lst)
+    COWArray(std::initializer_list<T> lst)
         : mSize(lst.size())
         , mArr(new T[mSize]) {
         debug("ctor(init list)");
@@ -58,6 +60,10 @@ public:
 
     T& operator[](size_t idx) {
         detach();
+        return mArr.get()[idx];
+    }
+
+    T at(size_t idx) {
         return mArr.get()[idx];
     }
 
